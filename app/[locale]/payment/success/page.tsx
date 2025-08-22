@@ -80,7 +80,7 @@ function PaymentSuccessContent({ locale }: { locale: string }) {
             description: data.error || 'Payment verification failed',
             variant: 'destructive'
           });
-          router.push(`/${locale}/payment/failed`);
+          router.push(`/${locale}/payment/failed?error=${encodeURIComponent(data.error || 'Payment verification failed')}`);
         }
       } catch (error) {
         console.error('Error verifying payment:', error);
@@ -89,7 +89,7 @@ function PaymentSuccessContent({ locale }: { locale: string }) {
           description: 'An error occurred while verifying payment',
           variant: 'destructive'
         });
-        router.push(`/${locale}/payment/failed`);
+        router.push(`/${locale}/payment/failed?error=${encodeURIComponent('An error occurred while verifying payment')}`);
       } finally {
         setIsLoading(false);
       }
