@@ -1,13 +1,13 @@
 "use client"
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
-export default function MockPaymentPage() {
+function MockPaymentContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const t = useTranslations('payment')
@@ -19,7 +19,7 @@ export default function MockPaymentPage() {
   const planId = searchParams.get('plan_id')
   const amount = searchParams.get('amount')
   const credits = searchParams.get('credits')
-  const locale = window.location.pathname.split('/')[1]
+  const locale = typeof window !== 'undefined' ? window.location.pathname.split('/')[1] : 'zh'
 
   const handlePayment = async (success: boolean) => {
     setIsProcessing(true)
@@ -151,5 +151,23 @@ export default function MockPaymentPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function MockPaymentPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <Loader2 className="w-16 h-16 text-blue-500 mx-auto mb-4 animate-spin" />
+            <CardTitle>加载中...</CardTitle>
+            <CardDescription>正在准备支付页面</CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    }>
+      <MockPaymentContent />
+    </Suspense>
   )
 }

@@ -146,6 +146,9 @@ STRIPE_PUBLISHABLE_KEY="pk_test_..."
 STRIPE_WEBHOOK_SECRET="whsec_..."
 STRIPE_PRICE_ID="price_..."
 
+# Creem 配置（可选）
+CREEM_API_KEY="creem_test_..."
+
 # 未来的支付提供商配置
 # ALIPAY_APP_ID="..."
 # WECHAT_PAY_MCH_ID="..."
@@ -197,10 +200,17 @@ STRIPE_SECRET_KEY="your_stripe_secret_key"
 STRIPE_WEBHOOK_SECRET="your_webhook_secret"
 ```
 
+#### 使用 Creem（推荐用于 SaaS 产品）
+```bash
+DEFAULT_PAYMENT_PROVIDER="creem"
+ENABLED_PAYMENT_PROVIDERS="creem,mock"
+CREEM_API_KEY="your_creem_api_key"
+```
+
 #### 混合模式（支持多种支付方式）
 ```bash
 DEFAULT_PAYMENT_PROVIDER="stripe"
-ENABLED_PAYMENT_PROVIDERS="stripe,mock,alipay"
+ENABLED_PAYMENT_PROVIDERS="stripe,creem,mock,alipay"
 ```
 
 ## 🧪 模拟支付系统
@@ -254,6 +264,66 @@ lib/stripe.ts                            # 保留原有配置（向后兼容）
 ```
 
 ## 🔮 扩展指南
+
+### Creem 支付特性
+
+[Creem](https://docs.creem.io/sdk/typescript-sdk) 是专为 SaaS 产品设计的支付平台，具有以下优势：
+
+- **SaaS 专用**：专门为 SaaS 订阅业务设计
+- **完整功能**：支持产品管理、客户管理、订阅管理
+- **TypeScript 支持**：原生 TypeScript SDK
+- **灵活定价**：支持自定义价格和订阅周期
+
+#### Creem 配置流程
+
+根据 [Creem 标准集成文档](https://docs.creem.io/checkout-flow)，正确的配置流程是：
+
+1. **在 Creem 控制台创建产品**
+   - 登录 [Creem.io](https://creem.io)
+   - 在产品页面创建对应的产品
+   - 复制每个产品的 Product ID
+
+2. **配置环境变量**
+```bash
+# 开发环境
+CREEM_API_KEY="creem_test_..."
+
+# 生产环境  
+CREEM_API_KEY="creem_live_..."
+
+# Product IDs (必须预先在 Creem 控制台创建)
+CREEM_PRODUCT_ID_PRO="prod_6tW66i0oZM7w1qXReHJrwg"
+CREEM_PRODUCT_ID_CREDITS_100="prod_..."
+CREEM_PRODUCT_ID_CREDITS_500="prod_..."
+```
+
+#### Creem Webhook 配置
+
+Creem Webhook URL: `https://yourdomain.com/api/creem/webhook`
+
+支持的事件类型：
+- `checkout.completed` - 支付完成
+- `subscription.renewed` - 订阅续费
+- `subscription.cancelled` - 订阅取消
+- `payment.failed` - 支付失败
+
+#### Creem 支付流程
+
+根据 [Creem checkout flow 文档](https://docs.creem.io/checkout-flow)：
+
+1. **预设产品** - 在 Creem 控制台预先创建产品并获取 Product ID
+2. **创建 checkout session** - 使用 Product ID 创建支付会话
+3. **重定向用户** - 用户完成支付
+4. **接收回调** - 通过 success URL 和 webhook 接收支付结果
+
+返回 URL 包含的参数：
+- `checkout_id` - Checkout 会话 ID
+- `order_id` - 订单 ID
+- `customer_id` - 客户 ID
+- `subscription_id` - 订阅 ID（如果适用）
+- `product_id` - 产品 ID
+- `request_id` - 请求 ID（用于跟踪）
+- `signature` - Creem 签名（用于验证）
 
 ### 添加新的支付提供商
 

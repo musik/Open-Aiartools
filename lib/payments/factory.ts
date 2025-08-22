@@ -1,11 +1,13 @@
 import { PaymentProvider, PaymentProviderType } from './types';
 import { StripePaymentProvider } from './providers/stripe';
+import { CreemPaymentProvider } from './providers/creem';
 import { MockPaymentProvider } from './providers/mock';
 import { getActivePaymentProvider, isPaymentProviderEnabled } from './config';
 
 // 支付提供商注册表
 const PAYMENT_PROVIDERS: Record<PaymentProviderType, () => PaymentProvider> = {
   stripe: () => new StripePaymentProvider(),
+  creem: () => new CreemPaymentProvider(),
   mock: () => new MockPaymentProvider(),
   // 未来可以添加更多支付提供商
   alipay: () => {

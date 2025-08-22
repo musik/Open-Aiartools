@@ -6,18 +6,85 @@ import { PaymentService } from '@/lib/payments/service';
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
+    const url = new URL(request.url);
+    console.log('完整 URL:', request.url);
+    console.log('URL pathname:', url.pathname);
+    console.log('URL search:', url.search);
+    
+    const { searchParams } = url;
     const sessionId = searchParams.get('session_id');
+    const provider = searchParams.get('provider'); // 支付提供商
+    const checkoutId = searchParams.get('checkout_id'); // Creem checkout ID
+    
+    // 额外的 Creem 参数
+    const requestId = searchParams.get('request_id');
+    const orderId = searchParams.get('order_id');
+    const customerId = searchParams.get('customer_id');
+    const subscriptionId = searchParams.get('subscription_id');
+    const productId = searchParams.get('product_id');
+    const signature = searchParams.get('signature');
 
-    if (!sessionId) {
+    console.log('解析的参数:', {
+      sessionId,
+      provider,
+      checkoutId,
+      requestId,
+      orderId,
+      customerId,
+      subscriptionId,
+      productId,
+      signature
+    });
+
+    if (!sessionId && !checkoutId) {
       return NextResponse.json(
         { error: '缺少会话ID' },
         { status: 400 }
       );
     }
-
-    // 验证支付
-    const paymentResult = await PaymentService.verifyPayment(sessionId);
+    
+    // 使用实际的会话ID（优先使用 checkout_id，这是 Creem 的真实 ID）
+    let actualSessionId = checkoutId || sessionId;
+    
+    // 如果 sessionId 包含占位符，忽略它并只使用 checkout_id
+    if (sessionId && sessionId.includes('{CHECKOUT_SESSION_ID}')) {
+      console.log('检测到占位符 sessionId，使用 checkout_id:', checkoutId);
+      actualSessionId = checkoutId;
+    }
+    
+    if (!actualSessionId) {
+      return NextResponse.json(
+        { error: '缺少有效的会话ID' },
+        { status: 400 }
+      );
+    }
+    
+    console.log('使用的实际会话ID:', actualSessionId);
+    
+    // 验证支付，优先使用指定的提供商
+    let paymentResult;
+    if (provider && provider !== 'undefined') {
+      console.log(`使用指定的提供商: ${provider}`);
+      paymentResult = await PaymentService.verifyPayment(actualSessionId, provider as any);
+    } else {
+      // 如果没有指定提供商，尝试根据参数推断
+      if (checkoutId) {
+        // 有 checkout_id 通常是 Creem
+        console.log('检测到 checkout_id，使用 Creem 提供商');
+        paymentResult = await PaymentService.verifyPayment(actualSessionId, 'creem');
+      } else {
+        // 默认尝试可用的提供商
+        console.log('尝试使用可用的支付提供商...');
+        const availableProviders = PaymentService.getAvailableProviders().filter(p => p.isConfigured);
+        
+        if (availableProviders.length === 0) {
+          throw new Error('没有可用的支付提供商');
+        }
+        
+        // 尝试第一个可用的提供商
+        paymentResult = await PaymentService.verifyPayment(actualSessionId, availableProviders[0].type);
+      }
+    }
 
     if (!paymentResult.success) {
       return NextResponse.json(

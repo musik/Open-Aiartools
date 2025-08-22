@@ -64,7 +64,7 @@ export abstract class PaymentProvider {
   abstract isConfigured(): boolean;
 }
 
-export type PaymentProviderType = 'stripe' | 'alipay' | 'wechat' | 'paypal' | 'mock';
+export type PaymentProviderType = 'stripe' | 'creem' | 'alipay' | 'wechat' | 'paypal' | 'mock';
 
 export interface PaymentConfig {
   defaultProvider: PaymentProviderType;

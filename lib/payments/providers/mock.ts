@@ -30,7 +30,7 @@ export class MockPaymentProvider extends PaymentProvider {
     const sessionId = `mock_session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
     // 创建模拟支付页面 URL（实际应用中可以是您自己的支付页面）
-    const mockPaymentUrl = `${params.successUrl.split('/payment/success')[0]}/payment/mock?session_id=${sessionId}&plan_id=${params.planId}&user_id=${params.userId}&credits=${plan.credits}&amount=${plan.price}`;
+    const mockPaymentUrl = `${params.successUrl.split('/payment/success')[0]}/payment/mock?session_id=${sessionId}&plan_id=${params.planId}&user_id=${params.userId}&credits=${plan.credits}&amount=${plan.price}&provider=mock`;
 
     return {
       id: sessionId,

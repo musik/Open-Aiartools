@@ -91,7 +91,7 @@ export class StripePaymentProvider extends PaymentProvider {
         },
       ],
       mode: plan.type === 'subscription' ? 'subscription' : 'payment',
-      success_url: params.successUrl,
+      success_url: `${params.successUrl}?provider=stripe&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: params.cancelUrl,
       customer_email: params.userEmail,
       metadata: {

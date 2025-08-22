@@ -23,16 +23,52 @@ function PaymentSuccessContent({ locale }: { locale: string }) {
 
   useEffect(() => {
     const sessionId = searchParams.get('session_id');
+    const checkoutId = searchParams.get('checkout_id');
+    const provider = searchParams.get('provider');
+    const requestId = searchParams.get('request_id');
     
-    if (!sessionId) {
+    // 使用适当的会话ID（优先使用 checkout_id 用于 Creem）
+    const actualSessionId = checkoutId || sessionId;
+    
+    if (!actualSessionId) {
+      router.push(`/${locale}/`);
+      return;
+    }
+    
+    // 如果是占位符，检查是否有其他有效的ID
+    if (actualSessionId.includes('{CHECKOUT_SESSION_ID}')) {
+      console.log('检测到占位符，等待有效参数...');
       router.push(`/${locale}/`);
       return;
     }
 
+    console.log('支付成功页面参数:', {
+      sessionId,
+      checkoutId,
+      provider,
+      requestId,
+      actualSessionId
+    });
+
     // 验证支付会话
     const verifySession = async () => {
       try {
-        const response = await fetch(`/api/verify-payment?session_id=${sessionId}`);
+        // 构建验证URL，包含所有相关参数
+        const params = new URLSearchParams();
+        if (actualSessionId) {
+          if (checkoutId) {
+            params.append('checkout_id', checkoutId);
+          } else {
+            params.append('session_id', actualSessionId);
+          }
+        }
+        if (provider) params.append('provider', provider);
+        if (requestId) params.append('request_id', requestId);
+        
+        const verifyUrl = `/api/verify-payment?${params.toString()}`;
+        console.log('调用验证API:', verifyUrl);
+        
+        const response = await fetch(verifyUrl);
         const data = await response.json();
         
         if (response.ok) {
