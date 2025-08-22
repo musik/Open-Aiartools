@@ -73,6 +73,10 @@ function PaymentSuccessContent({ locale }: { locale: string }) {
         
         if (response.ok) {
           setSessionData(data);
+          // 触发支付成功事件，通知其他组件更新
+          window.dispatchEvent(new CustomEvent('paymentSuccess', {
+            detail: { session: data.session }
+          }));
         } else {
           console.error('Payment verification failed:', data.error);
           toast({
@@ -151,7 +155,11 @@ function PaymentSuccessContent({ locale }: { locale: string }) {
           <div className="space-y-3">
             <Button 
               className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
-              onClick={() => router.push(`/${locale}/dashboard`)}
+              onClick={() => {
+                // 触发用户数据刷新事件
+                window.dispatchEvent(new CustomEvent('forceUserRefresh'));
+                router.push(`/${locale}/dashboard`);
+              }}
             >
               <Home className="w-4 h-4 mr-2" />
               {t('backToDashboard')}

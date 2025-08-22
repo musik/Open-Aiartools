@@ -51,28 +51,59 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
   const [isLoadingActivities, setIsLoadingActivities] = useState(true)
   const [isSubscribing, setIsSubscribing] = useState(false)
 
-  useEffect(() => {
-    const fetchActivities = async () => {
-      try {
-        const response = await fetch('/api/user/activities?limit=10', {
-          method: 'GET',
-          credentials: 'include',
-        })
-        
-        if (response.ok) {
-          const data = await response.json()
-          setActivities(data.activities || [])
-        } else {
-          console.error('获取活动记录失败:', response.status)
-        }
-      } catch (error) {
-        console.error('获取活动记录出错:', error)
-      } finally {
-        setIsLoadingActivities(false)
+  const fetchActivities = async () => {
+    try {
+      setIsLoadingActivities(true)
+      const response = await fetch('/api/user/activities?limit=10', {
+        method: 'GET',
+        credentials: 'include',
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        setActivities(data.activities || [])
+      } else {
+        console.error('获取活动记录失败:', response.status)
       }
+    } catch (error) {
+      console.error('获取活动记录出错:', error)
+    } finally {
+      setIsLoadingActivities(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchActivities()
+  }, [])
+
+  // 监听用户数据变化，当用户信息更新时重新获取活动记录
+  useEffect(() => {
+    if (user) {
+      fetchActivities()
+    }
+  }, [user?.credits, user?.subscriptionCredits, user?.subscriptionStatus])
+
+  // 监听来自其他页面的刷新事件
+  useEffect(() => {
+    const handlePaymentSuccess = () => {
+      console.log('收到支付成功事件，刷新用户数据和活动记录')
+      refreshUser()
+      fetchActivities()
     }
 
-    fetchActivities()
+    const handleForceRefresh = () => {
+      console.log('收到强制刷新事件，刷新数据')
+      refreshUser()
+      fetchActivities()
+    }
+
+    window.addEventListener('paymentSuccess', handlePaymentSuccess)
+    window.addEventListener('forceUserRefresh', handleForceRefresh)
+    
+    return () => {
+      window.removeEventListener('paymentSuccess', handlePaymentSuccess)
+      window.removeEventListener('forceUserRefresh', handleForceRefresh)
+    }
   }, [])
 
   // 格式化时间
@@ -228,22 +259,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
         refreshUser()
         setIsEditing(false)
         // 重新获取活动记录
-        const fetchActivitiesAgain = async () => {
-          try {
-            const response = await fetch('/api/user/activities?limit=10', {
-              method: 'GET',
-              credentials: 'include',
-            })
-            
-            if (response.ok) {
-              const data = await response.json()
-              setActivities(data.activities || [])
-            }
-          } catch (error) {
-            console.error('获取活动记录出错:', error)
-          }
-        }
-        fetchActivitiesAgain()
+        fetchActivities()
         toast({
           title: t('profileUpdated'),
           description: t('profileUpdatedDesc'),

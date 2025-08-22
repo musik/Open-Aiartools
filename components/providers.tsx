@@ -93,6 +93,19 @@ function AuthStateManager({ children }: { children: ReactNode }) {
     }
   }, [session, status]);
 
+  // 监听强制刷新事件
+  useEffect(() => {
+    const handleForceRefresh = () => {
+      console.log('收到强制刷新用户数据事件');
+      refreshUser();
+    };
+
+    window.addEventListener('forceUserRefresh', handleForceRefresh);
+    return () => {
+      window.removeEventListener('forceUserRefresh', handleForceRefresh);
+    };
+  }, []);
+
   return (
     <AuthContext.Provider value={{ user, isLoading, refreshUser }}>
       {children}
