@@ -3,10 +3,7 @@ import { notFound } from "next/navigation"
 import { NextIntlClientProvider } from "next-intl"
 import { getMessages, getTranslations, setRequestLocale } from "next-intl/server"
 import type { Metadata, Viewport } from "next"
-import { Inter } from "next/font/google"
 import Providers from "@/components/providers"
-
-const inter = Inter({ subsets: ["latin"] })
 
 const locales = ["en", "zh"]
 
@@ -112,46 +109,10 @@ export default async function LocaleLayout({
   const messages = await getMessages()
 
   return (
-    <html lang={locale} suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <meta name="theme-color" content="#6366f1" />
-        <meta name="color-scheme" content="light dark" />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "WebApplication",
-              "name": "Aiartools",
-              "description": locale === 'zh' 
-                ? "用AI的力量改变你的图像。简单、快速、功能强大。"
-                : "Transform your images with the power of AI. Simple, fast, and incredibly powerful.",
-              "url": "https://aiartools.com",
-              "applicationCategory": "DesignApplication",
-              "operatingSystem": "Web",
-              "offers": {
-                "@type": "Offer",
-                "price": "0",
-                "priceCurrency": "USD"
-              },
-              "aggregateRating": {
-                "@type": "AggregateRating",
-                "ratingValue": "4.8",
-                "ratingCount": "1250"
-              }
-            })
-          }}
-        />
-      </head>
-      <body className={inter.className}>
-        <Providers>
-          <NextIntlClientProvider messages={messages}>
-            {children}
-          </NextIntlClientProvider>
-        </Providers>
-      </body>
-    </html>
+    <Providers>
+      <NextIntlClientProvider messages={messages}>
+        {children}
+      </NextIntlClientProvider>
+    </Providers>
   )
 }

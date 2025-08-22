@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle, ArrowRight, Home } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/components/providers';
 
 interface PaymentSuccessPageProps {
   params: Promise<{
@@ -20,23 +21,83 @@ function PaymentSuccessContent({ locale }: { locale: string }) {
   const [isLoading, setIsLoading] = useState(true);
   const [sessionData, setSessionData] = useState<any>(null);
   const t = useTranslations('payment.success');
+  const { user, isLoading: authLoading, refreshUser } = useAuth();
+
+  // 简化的认证状态检查
+  useEffect(() => {
+    if (!authLoading && !user) {
+      console.log('用户未登录，重定向到登录页面');
+      toast({
+        title: '需要登录',
+        description: '请先登录后再查看支付结果',
+        variant: 'destructive'
+      });
+      router.push(`/${locale}/auth/login`);
+      return;
+    }
+  }, [user, authLoading, router, locale]);
 
   useEffect(() => {
-    const sessionId = searchParams.get('session_id');
+    // 等待认证状态加载完成
+    if (authLoading) return;
     
-    if (!sessionId) {
+    // 如果用户未登录，不处理支付验证
+    if (!user) return;
+    const sessionId = searchParams.get('session_id');
+    const checkoutId = searchParams.get('checkout_id');
+    const provider = searchParams.get('provider');
+    const requestId = searchParams.get('request_id');
+    
+    // 使用适当的会话ID（优先使用 checkout_id 用于 Creem）
+    const actualSessionId = checkoutId || sessionId;
+    
+    if (!actualSessionId) {
+      router.push(`/${locale}/`);
+      return;
+    }
+    
+    // 如果是占位符，检查是否有其他有效的ID
+    if (actualSessionId.includes('{CHECKOUT_SESSION_ID}')) {
+      console.log('检测到占位符，等待有效参数...');
       router.push(`/${locale}/`);
       return;
     }
 
+    console.log('支付成功页面参数:', {
+      sessionId,
+      checkoutId,
+      provider,
+      requestId,
+      actualSessionId
+    });
+
     // 验证支付会话
     const verifySession = async () => {
       try {
-        const response = await fetch(`/api/verify-payment?session_id=${sessionId}`);
+        // 构建验证URL，包含所有相关参数
+        const params = new URLSearchParams();
+        if (actualSessionId) {
+          if (checkoutId) {
+            params.append('checkout_id', checkoutId);
+          } else {
+            params.append('session_id', actualSessionId);
+          }
+        }
+        if (provider) params.append('provider', provider);
+        if (requestId) params.append('request_id', requestId);
+        
+        const verifyUrl = `/api/verify-payment?${params.toString()}`;
+        console.log('调用验证API:', verifyUrl);
+        
+        const response = await fetch(verifyUrl);
         const data = await response.json();
         
         if (response.ok) {
           setSessionData(data);
+          // 触发支付成功事件，通知其他组件更新
+          window.dispatchEvent(new CustomEvent('paymentSuccess', {
+            detail: { session: data.session }
+          }));
         } else {
           console.error('Payment verification failed:', data.error);
           toast({
@@ -44,7 +105,7 @@ function PaymentSuccessContent({ locale }: { locale: string }) {
             description: data.error || 'Payment verification failed',
             variant: 'destructive'
           });
-          router.push(`/${locale}/payment/failed`);
+          router.push(`/${locale}/payment/failed?error=${encodeURIComponent(data.error || 'Payment verification failed')}`);
         }
       } catch (error) {
         console.error('Error verifying payment:', error);
@@ -53,22 +114,41 @@ function PaymentSuccessContent({ locale }: { locale: string }) {
           description: 'An error occurred while verifying payment',
           variant: 'destructive'
         });
-        router.push(`/${locale}/payment/failed`);
+        router.push(`/${locale}/payment/failed?error=${encodeURIComponent('An error occurred while verifying payment')}`);
       } finally {
         setIsLoading(false);
       }
     };
 
-    verifySession();
-  }, [searchParams, router, locale, toast]);
+            verifySession();
+      }, [searchParams, router, locale, toast, authLoading, user]);
 
-  if (isLoading) {
+  if (authLoading || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">{t('processing')}</p>
-          <p className="text-sm text-gray-500 mt-2">{t('processingDesc')}</p>
+          <p className="mt-4 text-gray-600">
+            {authLoading ? '验证用户状态中...' : t('processing')}
+          </p>
+          <p className="text-sm text-gray-500 mt-2">
+            {authLoading ? '请稍等，正在验证您的登录状态' : t('processingDesc')}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // 如果用户未登录，显示登录提示
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Home className="w-8 h-8 text-red-600" />
+          </div>
+          <p className="text-red-600 font-medium">需要登录才能查看支付结果</p>
+          <p className="mt-2 text-gray-600">正在重定向到登录页面...</p>
         </div>
       </div>
     );
@@ -115,7 +195,34 @@ function PaymentSuccessContent({ locale }: { locale: string }) {
           <div className="space-y-3">
             <Button 
               className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
-              onClick={() => router.push(`/${locale}/dashboard`)}
+              onClick={() => {
+                console.log('支付成功页面 - 点击返回Dashboard按钮:', {
+                  user: !!user,
+                  userEmail: user?.email,
+                  authLoading,
+                  timestamp: new Date().toISOString()
+                });
+
+                // 确保用户已登录
+                if (!user) {
+                  console.warn('支付成功页面 - 用户未登录，重定向到登录页');
+                  toast({
+                    title: '需要登录',
+                    description: '请先登录后再访问 Dashboard',
+                    variant: 'destructive'
+                  });
+                  router.push(`/${locale}/auth/login`);
+                  return;
+                }
+                
+                // 直接跳转 (数据已在支付验证时通过paymentSuccess事件刷新)
+                console.log('支付成功页面 - 跳转到 Dashboard，用户状态:', {
+                  userEmail: user.email,
+                  credits: user.credits,
+                  subscriptionStatus: user.subscriptionStatus
+                });
+                router.push(`/${locale}/dashboard`);
+              }}
             >
               <Home className="w-4 h-4 mr-2" />
               {t('backToDashboard')}

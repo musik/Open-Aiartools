@@ -51,29 +51,86 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
   const [isLoadingActivities, setIsLoadingActivities] = useState(true)
   const [isSubscribing, setIsSubscribing] = useState(false)
 
-  useEffect(() => {
-    const fetchActivities = async () => {
-      try {
-        const response = await fetch('/api/user/activities?limit=10', {
-          method: 'GET',
-          credentials: 'include',
-        })
-        
-        if (response.ok) {
-          const data = await response.json()
-          setActivities(data.activities || [])
-        } else {
-          console.error('获取活动记录失败:', response.status)
-        }
-      } catch (error) {
-        console.error('获取活动记录出错:', error)
-      } finally {
-        setIsLoadingActivities(false)
+  const fetchActivities = async () => {
+    try {
+      setIsLoadingActivities(true)
+      const response = await fetch('/api/user/activities?limit=10', {
+        method: 'GET',
+        credentials: 'include',
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        setActivities(data.activities || [])
+      } else {
+        console.error('获取活动记录失败:', response.status)
       }
+    } catch (error) {
+      console.error('获取活动记录出错:', error)
+    } finally {
+      setIsLoadingActivities(false)
     }
+  }
 
+  useEffect(() => {
     fetchActivities()
   }, [])
+
+  // 监听用户数据变化，当用户信息更新时重新获取活动记录
+  useEffect(() => {
+    if (user) {
+      fetchActivities()
+    }
+  }, [user?.credits, user?.subscriptionCredits, user?.subscriptionStatus])
+
+  // 监听来自其他页面的刷新事件
+  useEffect(() => {
+    const handlePaymentSuccess = () => {
+      console.log('收到支付成功事件，刷新用户数据和活动记录')
+      refreshUser()
+      fetchActivities()
+    }
+
+    const handleForceRefresh = () => {
+      console.log('收到强制刷新事件，刷新数据')
+      refreshUser()
+      fetchActivities()
+    }
+
+    window.addEventListener('paymentSuccess', handlePaymentSuccess)
+    window.addEventListener('forceUserRefresh', handleForceRefresh)
+    
+    return () => {
+      window.removeEventListener('paymentSuccess', handlePaymentSuccess)
+      window.removeEventListener('forceUserRefresh', handleForceRefresh)
+    }
+  }, [])
+
+  // 增强的认证状态检查和调试
+  useEffect(() => {
+    console.log('Dashboard 认证状态检查:', {
+      isLoading,
+      user: !!user,
+      userEmail: user?.email,
+      timestamp: new Date().toISOString()
+    });
+
+    // 只有在确实加载完成且没有用户数据时才重定向
+    if (!isLoading && !user) {
+      console.warn('Dashboard: 用户未登录，准备重定向到登录页面', {
+        isLoading,
+        user,
+        location: window.location.href,
+        referrer: document.referrer
+      });
+      
+      // 添加一个短暂延迟，给认证系统一点时间同步
+      setTimeout(() => {
+        console.log('Dashboard: 执行登录重定向');
+        router.push(`/${locale}/auth/login`);
+      }, 100);
+    }
+  }, [user, isLoading, router, locale])
 
   // 格式化时间
   const formatDate = (dateString: string) => {
@@ -228,22 +285,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
         refreshUser()
         setIsEditing(false)
         // 重新获取活动记录
-        const fetchActivitiesAgain = async () => {
-          try {
-            const response = await fetch('/api/user/activities?limit=10', {
-              method: 'GET',
-              credentials: 'include',
-            })
-            
-            if (response.ok) {
-              const data = await response.json()
-              setActivities(data.activities || [])
-            }
-          } catch (error) {
-            console.error('获取活动记录出错:', error)
-          }
-        }
-        fetchActivitiesAgain()
+        fetchActivities()
         toast({
           title: t('profileUpdated'),
           description: t('profileUpdatedDesc'),
@@ -347,10 +389,16 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
     )
   }
 
-  // 如果未登录，重定向到登录页
-  if (!user) {
-    router.push(`/${locale}/auth/login`)
-    return null
+  // 如果未登录，显示加载状态而不是null
+  if (!isLoading && !user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">重定向到登录页...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
