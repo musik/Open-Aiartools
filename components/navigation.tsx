@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { MoonIcon, SunIcon, MenuIcon, XIcon, GlobeIcon, UserIcon, LogOutIcon, SettingsIcon } from "lucide-react"
+import { MoonIcon, SunIcon, MenuIcon, XIcon, UserIcon, LogOutIcon, SettingsIcon } from "lucide-react"
 import { useTheme } from "next-themes"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { useTranslations } from "next-intl"
@@ -85,10 +85,7 @@ export default function Navigation({ locale }: NavigationProps) {
     setIsMenuOpen(false)
   }
 
-  const switchLanguage = (newLocale: string) => {
-    const newPath = pathname.replace(`/${locale}`, `/${newLocale}`)
-    router.push(newPath)
-  }
+
 
   return (
     <nav className="fixed top-0 w-full bg-background/80 backdrop-blur-md border-b z-50">
@@ -148,19 +145,6 @@ export default function Navigation({ locale }: NavigationProps) {
 
           {/* Right Side Actions */}
           <div className="flex items-center space-x-2">
-            {/* Language Switcher */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <GlobeIcon className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => switchLanguage("en")}>English</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => switchLanguage("zh")}>中文</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
             {/* Theme Toggle */}
             <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
               <SunIcon className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />

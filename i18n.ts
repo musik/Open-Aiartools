@@ -2,7 +2,7 @@ import { notFound } from "next/navigation"
 import { getRequestConfig } from "next-intl/server"
 
 // 支持的语言列表
-const locales = ["en", "zh"]
+const locales = ["en"]
 
 export default getRequestConfig(async ({ requestLocale }) => {
   const locale = await requestLocale
