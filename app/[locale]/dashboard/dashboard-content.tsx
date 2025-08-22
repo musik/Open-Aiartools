@@ -106,6 +106,32 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
     }
   }, [])
 
+  // 增强的认证状态检查和调试
+  useEffect(() => {
+    console.log('Dashboard 认证状态检查:', {
+      isLoading,
+      user: !!user,
+      userEmail: user?.email,
+      timestamp: new Date().toISOString()
+    });
+
+    // 只有在确实加载完成且没有用户数据时才重定向
+    if (!isLoading && !user) {
+      console.warn('Dashboard: 用户未登录，准备重定向到登录页面', {
+        isLoading,
+        user,
+        location: window.location.href,
+        referrer: document.referrer
+      });
+      
+      // 添加一个短暂延迟，给认证系统一点时间同步
+      setTimeout(() => {
+        console.log('Dashboard: 执行登录重定向');
+        router.push(`/${locale}/auth/login`);
+      }, 100);
+    }
+  }, [user, isLoading, router, locale])
+
   // 格式化时间
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -362,13 +388,6 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
       </div>
     )
   }
-
-  // 处理未登录状态的重定向
-  useEffect(() => {
-    if (!isLoading && !user) {
-      router.push(`/${locale}/auth/login`)
-    }
-  }, [user, isLoading, router, locale])
 
   // 如果未登录，显示加载状态而不是null
   if (!isLoading && !user) {

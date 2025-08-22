@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { MoonIcon, SunIcon, MenuIcon, XIcon, UserIcon, LogOutIcon, SettingsIcon } from "lucide-react"
+import { MoonIcon, SunIcon, MenuIcon, XIcon, UserIcon, LogOutIcon, SettingsIcon, TestTube } from "lucide-react"
 import { useTheme } from "next-themes"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { useTranslations } from "next-intl"
@@ -178,6 +178,12 @@ export default function Navigation({ locale }: NavigationProps) {
                         <SettingsIcon className="mr-2 h-4 w-4" />
                         {t('dashboard')}
                       </DropdownMenuItem>
+                      {process.env.NODE_ENV === 'development' && (
+                        <DropdownMenuItem onClick={() => router.push(`/${locale}/test/payment-success`)}>
+                          <TestTube className="mr-2 h-4 w-4" />
+                          测试支付页面
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={handleLogout}>
                         <LogOutIcon className="mr-2 h-4 w-4" />

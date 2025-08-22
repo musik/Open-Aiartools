@@ -25,12 +25,14 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   refreshUser: () => Promise<void>;
+  verifyAuthState: () => Promise<User | null>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   isLoading: true,
   refreshUser: async () => {},
+  verifyAuthState: async () => null,
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -46,10 +48,40 @@ function AuthStateManager({ children }: { children: ReactNode }) {
   const CACHE_DURATION = 5 * 60 * 1000;
 
   const fetchUserData = async (force = false) => {
-    // 如果没有session，直接返回
+    console.log('fetchUserData 调用:', {
+      hasSession: !!session?.user,
+      sessionEmail: session?.user?.email,
+      status,
+      force,
+      timestamp: new Date().toISOString()
+    });
+
+    // 如果没有NextAuth session，尝试直接从API获取用户信息
     if (!session?.user) {
-      setUser(null);
-      setIsLoading(false);
+      console.log('没有NextAuth session，尝试从API获取用户信息');
+      
+      try {
+        setIsLoading(true);
+        const response = await fetch('/api/auth/me', {
+          method: 'GET',
+          credentials: 'include',
+        });
+
+        if (response.ok) {
+          const userData = await response.json();
+          console.log('从API获取用户信息成功:', userData.user?.email);
+          setUser(userData.user);
+          setLastFetch(Date.now());
+        } else {
+          console.log('从API获取用户信息失败，设置用户为null');
+          setUser(null);
+        }
+      } catch (error) {
+        console.error('API获取用户信息出错:', error);
+        setUser(null);
+      } finally {
+        setIsLoading(false);
+      }
       return;
     }
 
@@ -83,7 +115,35 @@ function AuthStateManager({ children }: { children: ReactNode }) {
   };
 
   const refreshUser = async () => {
+    console.log('refreshUser 被调用，强制刷新用户数据');
     await fetchUserData(true);
+  };
+
+  // 添加一个验证认证状态的函数
+  const verifyAuthState = async () => {
+    console.log('verifyAuthState: 验证认证状态');
+    try {
+      const response = await fetch('/api/auth/me', {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        console.log('verifyAuthState: 用户数据验证成功');
+        setUser(userData.user);
+        setLastFetch(Date.now());
+        return userData.user;
+      } else {
+        console.log('verifyAuthState: 用户数据验证失败');
+        setUser(null);
+        return null;
+      }
+    } catch (error) {
+      console.error('verifyAuthState: 验证失败:', error);
+      setUser(null);
+      return null;
+    }
   };
 
   // 当session状态变化时获取用户数据
@@ -107,7 +167,7 @@ function AuthStateManager({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, refreshUser }}>
+    <AuthContext.Provider value={{ user, isLoading, refreshUser, verifyAuthState }}>
       {children}
     </AuthContext.Provider>
   );

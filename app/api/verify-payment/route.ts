@@ -3,13 +3,25 @@ import { db } from '@/lib/db';
 import { users, userActivities } from '@/lib/schema';
 import { eq, and, like } from 'drizzle-orm';
 import { PaymentService } from '@/lib/payments/service';
+import { auth } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
+    // 检查用户认证状态
+    const session = await auth();
+    if (!session?.user?.email) {
+      console.log('未认证用户尝试验证支付');
+      return NextResponse.json(
+        { error: '请先登录后再验证支付' },
+        { status: 401 }
+      );
+    }
+
     const url = new URL(request.url);
     console.log('完整 URL:', request.url);
     console.log('URL pathname:', url.pathname);
     console.log('URL search:', url.search);
+    console.log('认证用户:', session.user.email);
     
     const { searchParams } = url;
     const sessionId = searchParams.get('session_id');
@@ -98,6 +110,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         { error: '用户ID缺失' },
         { status: 400 }
+      );
+    }
+
+    // 安全检查：确保支付属于当前登录用户
+    const currentUser = await db.query.users.findFirst({
+      where: eq(users.email, session.user.email),
+    });
+
+    if (!currentUser || currentUser.id !== userId) {
+      console.log(`安全警告：用户 ${session.user.email} 尝试验证属于用户 ${userId} 的支付`);
+      return NextResponse.json(
+        { error: '支付验证失败：用户身份不匹配' },
+        { status: 403 }
       );
     }
 
