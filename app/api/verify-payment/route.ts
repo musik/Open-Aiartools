@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { stripe } from '@/lib/stripe';
 import { db } from '@/lib/db';
 import { users, userActivities } from '@/lib/schema';
 import { eq, and, like } from 'drizzle-orm';
+import { PaymentService } from '@/lib/payments/service';
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,25 +16,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 获取 Stripe 会话信息
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    // 验证支付
+    const paymentResult = await PaymentService.verifyPayment(sessionId);
 
-    if (!session) {
+    if (!paymentResult.success) {
       return NextResponse.json(
-        { error: '无效的会话ID' },
-        { status: 404 }
-      );
-    }
-
-    // 检查支付状态
-    if (session.payment_status !== 'paid') {
-      return NextResponse.json(
-        { error: '支付未完成' },
+        { error: paymentResult.error || '支付验证失败' },
         { status: 400 }
       );
     }
 
-    const userId = session.metadata?.userId;
+    const { userId, planId, credits, planType } = paymentResult;
     if (!userId) {
       return NextResponse.json(
         { error: '用户ID缺失' },
@@ -63,11 +55,11 @@ export async function GET(request: NextRequest) {
     });
 
     if (!existingActivity) {
-      const credits = parseInt(session.metadata?.credits || '800');
-      const planType = session.metadata?.planType || 'subscription';
+      const creditsAmount = credits || 800;
+      const paymentPlanType = planType || 'subscription';
       
       // 检查用户是否已经有活跃的订阅
-      if (planType === 'subscription') {
+      if (paymentPlanType === 'subscription') {
         const hasActiveSubscription = user.subscriptionStatus === 'active' && 
                                     user.subscriptionEndDate && 
                                     new Date(user.subscriptionEndDate) > new Date();
@@ -85,16 +77,15 @@ export async function GET(request: NextRequest) {
       const subscriptionEndDate = new Date();
       subscriptionEndDate.setMonth(subscriptionEndDate.getMonth() + 1);
 
-      if (planType === 'subscription') {
+      if (paymentPlanType === 'subscription') {
         // 处理订阅模式：将积分添加到订阅积分字段
         await db.update(users)
           .set({ 
-            subscriptionCredits: credits, // 重置订阅积分
+            subscriptionCredits: creditsAmount, // 重置订阅积分
             subscriptionStatus: 'active',
-            subscriptionPlan: 'pro',
+            subscriptionPlan: planId || 'pro',
             subscriptionStartDate: subscriptionStartDate,
             subscriptionEndDate: subscriptionEndDate,
-            stripeCustomerId: typeof session.customer === 'string' ? session.customer : null,
             updatedAt: new Date()
           })
           .where(eq(users.id, userId));
@@ -104,11 +95,11 @@ export async function GET(request: NextRequest) {
           userId: userId,
           type: 'subscription_activated',
           description: 'credit_description.subscription_activated',
-          creditAmount: credits,
+          creditAmount: creditsAmount,
           metadata: JSON.stringify({ 
             sessionId,
-            planType: 'subscription',
-            planId: 'pro',
+            planType: paymentPlanType,
+            planId: planId || 'pro',
             subscriptionEndDate: subscriptionEndDate.toISOString(),
             source: 'verify-payment-api', // 标识来源
             timestamp: new Date().toISOString()
@@ -119,7 +110,7 @@ export async function GET(request: NextRequest) {
         // 处理一次性支付：添加到永久积分
         await db.update(users)
           .set({ 
-            credits: user.credits + credits,
+            credits: user.credits + creditsAmount,
             updatedAt: new Date()
           })
           .where(eq(users.id, userId));
@@ -129,11 +120,11 @@ export async function GET(request: NextRequest) {
           userId: userId,
           type: 'credit_add',
           description: 'credit_description.purchase_credits',
-          creditAmount: credits,
+          creditAmount: creditsAmount,
           metadata: JSON.stringify({ 
             sessionId,
-            planType: 'test_payment',
-            planId: 'pro',
+            planType: paymentPlanType,
+            planId: planId || 'pro',
             source: 'verify-payment-api', // 标识来源
             timestamp: new Date().toISOString()
           }),
@@ -147,11 +138,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       session: {
-        id: session.id,
-        amount_total: session.amount_total,
-        currency: session.currency,
-        customer_email: session.customer_email,
-        payment_status: session.payment_status,
+        id: paymentResult.sessionId,
+        amount_total: paymentResult.amount,
+        currency: paymentResult.currency,
+        payment_status: 'paid',
       }
     });
 
