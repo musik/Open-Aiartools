@@ -17,7 +17,11 @@
     "login": "Login",
     "register": "Sign Up",
     "dashboard": "Dashboard",
-    "logout": "Logout"
+    "logout": "Logout",
+    "logoutSuccess": "Logout successful",
+    "logoutSuccessDesc": "You have been successfully logged out",
+    "logoutFailed": "Logout failed",
+    "logoutFailedDesc": "An error occurred during logout"
   },
   "dashboard": {
     "pageTitle": "Dashboard - Aiartools",
@@ -610,6 +614,56 @@
       "activated": "Activated",
       "thankYou": "Thank you for choosing Aiartools Pro!",
       "autoRenewal": "Your subscription will auto-renew and can be cancelled anytime."
+    },
+    "failed": {
+      "title": "Payment Failed",
+      "subtitle": "Sorry, your payment could not be completed",
+      "errorDetails": "Error Details",
+      "sessionId": "Session ID",
+      "checkoutId": "Checkout ID",
+      "possibleReasons": "Possible Reasons",
+      "insufficientBalance": "Insufficient card balance",
+      "incorrectInfo": "Incorrect card information",
+      "networkIssue": "Network connection issue",
+      "securityVerification": "Bank security verification failed",
+      "systemError": "Payment system temporary failure",
+      "retryPayment": "Retry Payment",
+      "backToHome": "Back to Home",
+      "contactSupport": "Contact Support"
+    },
+    "mock": {
+      "title": "Mock Payment",
+      "description": "This is a mock payment page for testing payment flow",
+      "orderDetails": "Order Details",
+      "sessionId": "Session ID",
+      "plan": "Plan",
+      "credits": "Credits",
+      "amount": "Amount",
+      "processing": "Processing...",
+      "success": "Payment Successful!",
+      "successDesc": "Redirecting to success page...",
+      "failed": "Payment Failed",
+      "failedDesc": "Payment processing failed, please try again",
+      "simulateSuccess": "Simulate Success",
+      "simulateFailure": "Simulate Failure",
+      "cancel": "Cancel"
+    },
+    "test": {
+      "title": "Payment Success Test",
+      "description": "Test the payment success page functionality without a full payment flow",
+      "provider": "Payment Provider",
+      "sessionId": "Session ID",
+      "checkoutId": "Checkout ID",
+      "requestId": "Request ID",
+      "planId": "Plan ID",
+      "credits": "Credits",
+      "amount": "Amount",
+      "currency": "Currency",
+      "simulateSuccess": "Simulate Success",
+      "testDashboardRedirect": "Test Dashboard Redirect",
+      "generatedUrl": "Generated URL",
+      "preview": "Preview",
+      "previewDesc": "Preview of the payment success page based on your configuration"
     }
   }
 }

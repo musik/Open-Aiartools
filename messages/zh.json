@@ -17,7 +17,11 @@
     "login": "登录",
     "register": "注册",
     "dashboard": "个人中心",
-    "logout": "退出登录"
+    "logout": "退出登录",
+    "logoutSuccess": "退出登录成功",
+    "logoutSuccessDesc": "您已成功退出登录",
+    "logoutFailed": "退出登录失败",
+    "logoutFailedDesc": "退出登录时发生错误"
   },
   "hero": {
     "headline": "一言生万象，重塑你的影像世界",
@@ -595,6 +599,56 @@
       "activated": "已激活",
       "thankYou": "感谢您选择 Aiartools Pro！",
       "autoRenewal": "您的订阅将自动续订，可随时取消。"
+    },
+    "failed": {
+      "title": "支付失败",
+      "subtitle": "很抱歉，您的支付未能成功完成",
+      "errorDetails": "错误详情",
+      "sessionId": "会话ID",
+      "checkoutId": "结账ID",
+      "possibleReasons": "可能的原因",
+      "insufficientBalance": "银行卡余额不足",
+      "incorrectInfo": "卡片信息输入错误",
+      "networkIssue": "网络连接问题",
+      "securityVerification": "银行安全验证失败",
+      "systemError": "支付系统临时故障",
+      "retryPayment": "重新尝试支付",
+      "backToHome": "返回首页",
+      "contactSupport": "联系客服"
+    },
+    "mock": {
+      "title": "模拟支付",
+      "description": "这是一个模拟支付页面，用于测试支付流程",
+      "orderDetails": "订单详情",
+      "sessionId": "会话ID",
+      "plan": "计划",
+      "credits": "积分",
+      "amount": "金额",
+      "processing": "处理中...",
+      "success": "支付成功！",
+      "successDesc": "正在跳转到成功页面...",
+      "failed": "支付失败",
+      "failedDesc": "支付处理失败，请重试",
+      "simulateSuccess": "模拟成功",
+      "simulateFailure": "模拟失败",
+      "cancel": "取消"
+    },
+    "test": {
+      "title": "支付成功页面测试",
+      "description": "测试支付成功页面功能，无需完整支付流程",
+      "provider": "支付提供商",
+      "sessionId": "会话ID",
+      "checkoutId": "结账ID",
+      "requestId": "请求ID",
+      "planId": "计划ID",
+      "credits": "积分",
+      "amount": "金额",
+      "currency": "货币",
+      "simulateSuccess": "模拟成功",
+      "testDashboardRedirect": "测试Dashboard跳转",
+      "generatedUrl": "生成的URL",
+      "preview": "预览",
+      "previewDesc": "基于您的配置的支付成功页面预览"
     }
   }
 }
