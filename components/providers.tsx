@@ -160,9 +160,18 @@ function AuthStateManager({ children }: { children: ReactNode }) {
       refreshUser();
     };
 
+    const handleLogout = () => {
+      console.log('收到登出事件，清除用户状态');
+      setUser(null);
+      setLastFetch(0);
+    };
+
     window.addEventListener('forceUserRefresh', handleForceRefresh);
+    window.addEventListener('userLogout', handleLogout);
+    
     return () => {
       window.removeEventListener('forceUserRefresh', handleForceRefresh);
+      window.removeEventListener('userLogout', handleLogout);
     };
   }, []);
 

@@ -1,27 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { signOut } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
-    // 清除NextAuth session
-    try {
-      await signOut({ redirect: false });
-    } catch (error) {
-      // NextAuth signOut可能会失败，但不影响继续清理
-      console.log('NextAuth signOut 错误:', error);
-    }
-
-    // 清除我们自己的JWT token cookie
     const cookieStore = await cookies();
-    cookieStore.delete('auth-token');
+    
+    // 清除所有可能的认证相关cookies
+    const cookiesToDelete = [
+      'auth-token',
+      'authToken',
+      'next-auth.session-token',
+      'next-auth.csrf-token',
+      'next-auth.callback-url',
+      '__Secure-next-auth.session-token',
+      '__Secure-next-auth.csrf-token',
+      '__Host-next-auth.csrf-token'
+    ];
+
+    // 构建清除cookies的响应头
+    const clearCookieHeaders = cookiesToDelete.map(cookieName => 
+      `${cookieName}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax`
+    ).join(', ');
 
     return NextResponse.json(
       { message: 'Logout successful' },
       {
         status: 200,
         headers: {
-          'Set-Cookie': 'authToken=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Strict'
+          'Set-Cookie': clearCookieHeaders
         }
       }
     );
