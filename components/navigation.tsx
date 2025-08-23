@@ -41,14 +41,34 @@ export default function Navigation({ locale }: NavigationProps) {
 
   const handleLogout = async () => {
     try {
-      await signOut({ redirect: false })
-      await refreshUser() // 刷新认证状态
-      router.push(`/${locale}`)
-      toast({
-        title: t("logoutSuccess"),
-        description: t("logoutSuccessDesc"),
+      // 先调用API登出，清除自定义JWT token
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
       })
+
+      if (response.ok) {
+        // 然后清除NextAuth session
+        await signOut({ redirect: false })
+        
+        // 触发全局登出事件
+        window.dispatchEvent(new CustomEvent('userLogout'));
+        
+        // 强制刷新用户状态
+        await refreshUser()
+        
+        // 导航到首页
+        router.push(`/${locale}`)
+        
+        toast({
+          title: t("logoutSuccess"),
+          description: t("logoutSuccessDesc"),
+        })
+      } else {
+        throw new Error('API登出失败')
+      }
     } catch (error) {
+      console.error('登出错误:', error)
       toast({
         title: t("logoutFailed"),
         description: t("logoutFailedDesc"),

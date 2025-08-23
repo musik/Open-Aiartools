@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useTranslations } from "next-intl";
 import { User, Mail, Calendar, LogOut, Edit, Save, X, Coins, ImageIcon, Plus, Minus, Crown } from 'lucide-react';
 import { useAuth } from "@/components/providers"
+import { signOut } from 'next-auth/react';
 
 interface UserInfo {
   id: string;
@@ -311,25 +312,32 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
 
   const handleLogout = async () => {
     try {
+      // 先调用API登出，清除自定义JWT token
       const response = await fetch('/api/auth/logout', {
         method: 'POST',
+        credentials: 'include',
       })
 
       if (response.ok) {
+        // 然后清除NextAuth session
+        await signOut({ redirect: false })
+        
+        // 触发全局登出事件
+        window.dispatchEvent(new CustomEvent('userLogout'));
+        
         toast({
           title: t('logoutSuccess'),
           description: t('logoutSuccess'),
         })
+        
+        // 导航到首页
         router.push(`/${locale}`)
         router.refresh()
       } else {
-        toast({
-          title: t('logoutFailed'),
-          description: t('logoutError'),
-          variant: 'destructive',
-        })
+        throw new Error('API登出失败')
       }
     } catch (error) {
+      console.error('登出错误:', error)
       toast({
         title: t('logoutFailed'),
         description: tErrors('networkError'),
